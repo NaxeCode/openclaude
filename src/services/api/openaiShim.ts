@@ -165,29 +165,33 @@ function convertMessages(
         }
 
         // Emit remaining user content
-        if (otherContent.length > 0) {
+        const userContent = convertContentBlocks(otherContent)
+        if (userContent) {
           result.push({
             role: 'user',
-            content: convertContentBlocks(otherContent),
+            content: userContent,
           })
         }
       } else {
-        result.push({
-          role: 'user',
-          content: convertContentBlocks(content),
-        })
+        const userContent = convertContentBlocks(content)
+        if (userContent) {
+          result.push({
+            role: 'user',
+            content: userContent,
+          })
+        }
       }
     } else if (role === 'assistant') {
       // Check for tool_use blocks
       if (Array.isArray(content)) {
         const toolUses = content.filter((b: { type?: string }) => b.type === 'tool_use')
-        const textContent = content.filter(
-          (b: { type?: string }) => b.type !== 'tool_use' && b.type !== 'thinking',
+        const otherContent = content.filter(
+          (b: { type?: string }) => b.type !== 'tool_use',
         )
 
         const assistantMsg: OpenAIMessage = {
           role: 'assistant',
-          content: convertContentBlocks(textContent) as string,
+          content: convertContentBlocks(otherContent) as string,
         }
 
         if (toolUses.length > 0) {
@@ -246,15 +250,8 @@ function convertTools(
   return tools
       .filter(t => t.name !== 'ToolSearchTool') // Not relevant for OpenAI
   .map(t => {
-    // Estraiamo lo schema
+    // Extract the schema
     const schema = (t.input_schema ?? { type: 'object', properties: {} }) as any;
-
-    // PATCH PER CODEX: Se è lo strumento Agent, forziamo i campi obbligatori
-    if (t.name === 'Agent' && schema.properties) {
-      if (!schema.required) schema.required = [];
-      if (!schema.required.includes('message')) schema.required.push('message');
-      if (!schema.required.includes('subagent_type')) schema.required.push('subagent_type');
-    }
 
     return {
       type: 'function' as const,
@@ -535,9 +532,15 @@ class OpenAIShimStream {
 
 class OpenAIShimMessages {
   private defaultHeaders: Record<string, string>
+  private config: {
+    apiKey: string
+    baseUrl: string
+    model?: string
+  }
 
-  constructor(defaultHeaders: Record<string, string>) {
+  constructor(defaultHeaders: Record<string, string>, config: { apiKey: string; baseUrl: string; model?: string }) {
     this.defaultHeaders = defaultHeaders
+    this.config = config
   }
 
   create(
@@ -547,7 +550,12 @@ class OpenAIShimMessages {
     const self = this
 
     const promise = (async () => {
-      const request = resolveProviderRequest({ model: params.model })
+      // Use the config model if params.model is not set, or if we want to override
+      const requestedModel = params.model || self.config.model
+      const request = resolveProviderRequest({
+        model: requestedModel,
+        baseUrl: self.config.baseUrl
+      })
       const response = await self._doRequest(request, params, options)
 
       if (params.stream) {
@@ -685,7 +693,7 @@ class OpenAIShimMessages {
       ...(options?.headers ?? {}),
     }
 
-    const apiKey = process.env.OPENAI_API_KEY ?? ''
+    const apiKey = this.config.apiKey
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`
     }
@@ -781,8 +789,8 @@ class OpenAIShimMessages {
 class OpenAIShimBeta {
   messages: OpenAIShimMessages
 
-  constructor(defaultHeaders: Record<string, string>) {
-    this.messages = new OpenAIShimMessages(defaultHeaders)
+  constructor(defaultHeaders: Record<string, string>, config: { apiKey: string; baseUrl: string; model?: string }) {
+    this.messages = new OpenAIShimMessages(defaultHeaders, config)
   }
 }
 
@@ -791,25 +799,30 @@ export function createOpenAIShimClient(options: {
   maxRetries?: number
   timeout?: number
 }): unknown {
+  let apiKey = process.env.OPENAI_API_KEY || ''
+  let baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'
+  let model = process.env.OPENAI_MODEL
+
   // When Gemini provider is active, map Gemini env vars to OpenAI-compatible ones
-  // so the existing providerConfig.ts infrastructure picks them up correctly.
+  // locally so we don't pollute process.env for other concurrent agents.
   if (
     process.env.CLAUDE_CODE_USE_GEMINI === '1' ||
     process.env.CLAUDE_CODE_USE_GEMINI === 'true'
   ) {
-    process.env.OPENAI_BASE_URL ??=
-      process.env.GEMINI_BASE_URL ??
+    baseUrl =
+      process.env.GEMINI_BASE_URL ||
       'https://generativelanguage.googleapis.com/v1beta/openai'
-    process.env.OPENAI_API_KEY ??=
-      process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? ''
-    if (process.env.GEMINI_MODEL && !process.env.OPENAI_MODEL) {
-      process.env.OPENAI_MODEL = process.env.GEMINI_MODEL
+    apiKey =
+      process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || ''
+    if (process.env.GEMINI_MODEL) {
+      model = process.env.GEMINI_MODEL
     }
   }
 
-  const beta = new OpenAIShimBeta({
-    ...(options.defaultHeaders ?? {}),
-  })
+  const beta = new OpenAIShimBeta(
+    { ...(options.defaultHeaders ?? {}) },
+    { apiKey, baseUrl, model }
+  )
 
   return {
     beta,

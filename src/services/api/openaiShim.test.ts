@@ -6,6 +6,7 @@ type FetchType = typeof globalThis.fetch
 const originalEnv = {
   OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  CLAUDE_CODE_USE_GEMINI: process.env.CLAUDE_CODE_USE_GEMINI,
 }
 
 const originalFetch = globalThis.fetch
@@ -52,11 +53,13 @@ function makeStreamChunks(chunks: unknown[]): string[] {
 beforeEach(() => {
   process.env.OPENAI_BASE_URL = 'http://example.test/v1'
   process.env.OPENAI_API_KEY = 'test-key'
+  delete process.env.CLAUDE_CODE_USE_GEMINI
 })
 
 afterEach(() => {
   process.env.OPENAI_BASE_URL = originalEnv.OPENAI_BASE_URL
   process.env.OPENAI_API_KEY = originalEnv.OPENAI_API_KEY
+  process.env.CLAUDE_CODE_USE_GEMINI = originalEnv.CLAUDE_CODE_USE_GEMINI
   globalThis.fetch = originalFetch
 })
 
