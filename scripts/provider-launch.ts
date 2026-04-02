@@ -139,7 +139,29 @@ function printSummary(profile: ProviderProfile, env: NodeJS.ProcessEnv): void {
   }
 }
 
+function loadEnvFile(): void {
+  const envPath = resolve(process.cwd(), '.env')
+  if (!existsSync(envPath)) return
+
+  try {
+    const content = readFileSync(envPath, 'utf8')
+    for (const line of content.split('\n')) {
+      const trimmedLine = line.trim()
+      if (!trimmedLine || trimmedLine.startsWith('#')) continue
+
+      const [key, ...valueParts] = trimmedLine.split('=')
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '')
+        process.env[key.trim()] = value
+      }
+    }
+  } catch (error) {
+    console.warn(`Failed to load .env file: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
 async function main(): Promise<void> {
+  loadEnvFile()
   const options = parseLaunchOptions(process.argv.slice(2))
   const requestedProfile = options.requestedProfile
   if (!requestedProfile) {

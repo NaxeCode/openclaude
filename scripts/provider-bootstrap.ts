@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   resolveCodexApiCredentials,
@@ -50,7 +50,29 @@ async function resolveOllamaModel(
   return recommended?.name ?? null
 }
 
+function loadEnvFile(): void {
+  const envPath = resolve(process.cwd(), '.env')
+  if (!existsSync(envPath)) return
+
+  try {
+    const content = readFileSync(envPath, 'utf8')
+    for (const line of content.split('\n')) {
+      const trimmedLine = line.trim()
+      if (!trimmedLine || trimmedLine.startsWith('#')) continue
+
+      const [key, ...valueParts] = trimmedLine.split('=')
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '')
+        process.env[key.trim()] = value
+      }
+    }
+  } catch (error) {
+    console.warn(`Failed to load .env file: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
 async function main(): Promise<void> {
+  loadEnvFile()
   const provider = parseProviderArg()
   const argModel = parseArg('--model')
   const argBaseUrl = parseArg('--base-url')

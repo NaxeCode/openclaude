@@ -3,6 +3,32 @@ import {
   resolveCodexApiCredentials,
   resolveProviderRequest,
 } from '../services/api/providerConfig.js'
+import { readFileSync, existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+function loadEnvFile(): void {
+  const envPath = resolve(process.cwd(), '.env')
+  if (!existsSync(envPath)) return
+
+  try {
+    const content = readFileSync(envPath, 'utf8')
+    for (const line of content.split('\n')) {
+      const trimmedLine = line.trim()
+      if (!trimmedLine || trimmedLine.startsWith('#')) continue
+
+      const [key, ...valueParts] = trimmedLine.split('=')
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '')
+        process.env[key.trim()] = value
+      }
+    }
+  } catch (error) {
+    // Silent fail for production entrypoint
+  }
+}
+
+// Load .env before anything else
+loadEnvFile()
 
 // Bugfix for corepack auto-pinning, which adds yarnpkg to peoples' package.jsons
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
@@ -46,7 +72,40 @@ function isLocalProviderUrl(baseUrl: string | undefined): boolean {
 }
 
 function validateProviderEnvOrExit(): void {
-  if (!isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI)) {
+  const useOpenAI = isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI)
+  const useGemini = isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI)
+  const useGeminiNative = isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI_NATIVE)
+
+  if (!useOpenAI && !useGemini && !useGeminiNative) {
+    return
+  }
+
+  const activeProviders = [useOpenAI, useGemini, useGeminiNative].filter(Boolean).length
+  if (activeProviders > 1) {
+    console.error('Ambiguous configuration: multiple providers enabled. Set only one of CLAUDE_CODE_USE_OPENAI, CLAUDE_CODE_USE_GEMINI, or CLAUDE_CODE_USE_GEMINI_NATIVE.')
+    process.exit(1)
+  }
+
+  if (useGeminiNative) {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+    if (!apiKey) {
+      console.error('GEMINI_API_KEY or GOOGLE_API_KEY is required when CLAUDE_CODE_USE_GEMINI_NATIVE=1.')
+      process.exit(1)
+    }
+    return
+  }
+
+  if (useGemini) {
+    if (process.env.GEMINI_API_KEY === 'SUA_CHAVE') {
+      console.error('Invalid GEMINI_API_KEY: placeholder value SUA_CHAVE detected.')
+      process.exit(1)
+    }
+    const geminiBaseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai'
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+    if (!geminiApiKey && !isLocalProviderUrl(geminiBaseUrl)) {
+      console.error('GEMINI_API_KEY or GOOGLE_API_KEY is required when CLAUDE_CODE_USE_GEMINI=1 and GEMINI_BASE_URL is not local.')
+      process.exit(1)
+    }
     return
   }
 
