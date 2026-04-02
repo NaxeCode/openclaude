@@ -112,6 +112,16 @@ export OPENAI_BASE_URL=https://api.deepseek.com/v1
 export OPENAI_MODEL=deepseek-chat
 ```
 
+### Google Gemini (Direct)
+
+You can use Gemini directly via its OpenAI-compatible endpoint.
+
+```bash
+export CLAUDE_CODE_USE_GEMINI=1
+export GEMINI_API_KEY=your-api-key
+export GEMINI_MODEL=gemini-2.0-flash
+```
+
 ### Google Gemini (via OpenRouter)
 
 ```bash
@@ -182,10 +192,14 @@ export OPENAI_MODEL=gpt-4o
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `CLAUDE_CODE_USE_OPENAI` | Yes | Set to `1` to enable the OpenAI provider |
-| `OPENAI_API_KEY` | Yes* | Your API key (*not needed for local models like Ollama) |
-| `OPENAI_MODEL` | Yes | Model name (e.g. `gpt-4o`, `deepseek-chat`, `llama3.3:70b`) |
+| `CLAUDE_CODE_USE_OPENAI` | Yes* | Set to `1` to enable the OpenAI provider (*if not using Gemini) |
+| `CLAUDE_CODE_USE_GEMINI` | Yes* | Set to `1` to enable direct Gemini support (*if not using OpenAI) |
+| `OPENAI_API_KEY` | Yes* | Your OpenAI key (*not needed for local models or Gemini) |
+| `OPENAI_MODEL` | Yes* | OpenAI model name (*priority over ANTHROPIC_MODEL) |
+| `GEMINI_API_KEY` | Yes* | Google API key for Gemini (can also use `GOOGLE_API_KEY`) |
+| `GEMINI_MODEL` | No | Gemini model name (defaults to `gemini-2.0-flash`) |
 | `OPENAI_BASE_URL` | No | API endpoint (defaults to `https://api.openai.com/v1`) |
+| `GEMINI_BASE_URL` | No | Gemini endpoint (defaults to `https://generativelanguage.googleapis.com/v1beta/openai`) |
 | `CODEX_API_KEY` | Codex only | Codex/ChatGPT access token override |
 | `CODEX_AUTH_JSON_PATH` | Codex only | Path to a Codex CLI `auth.json` file |
 | `CODEX_HOME` | Codex only | Alternative Codex home directory (`auth.json` will be read from here) |
