@@ -274,6 +274,46 @@ function getCodexPlanOption(): ModelOption {
   }
 }
 
+function getGemini31ProOption(): ModelOption {
+  return {
+    value: 'gemini-3.1-pro-preview',
+    label: 'Gemini 3.1 Pro',
+    description: 'Gemini 3.1 Pro · Most capable for complex tasks',
+  }
+}
+
+function getGemini25ProOption(): ModelOption {
+  return {
+    value: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
+    description: 'Gemini 2.5 Pro · Highly capable, stable release',
+  }
+}
+
+function getGemini3FlashOption(): ModelOption {
+  return {
+    value: 'gemini-3-flash-preview',
+    label: 'Gemini 3 Flash',
+    description: 'Gemini 3 Flash · Best for everyday tasks',
+  }
+}
+
+function getGemini25FlashOption(): ModelOption {
+  return {
+    value: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
+    description: 'Gemini 2.5 Flash · Fast and efficient',
+  }
+}
+
+function getGemini31FlashLiteOption(): ModelOption {
+  return {
+    value: 'gemini-3.1-flash-lite-preview',
+    label: 'Gemini 3.1 Flash Lite',
+    description: 'Gemini 3.1 Flash Lite · Fastest and most efficient',
+  }
+}
+
 function getCodexSparkOption(): ModelOption {
   return {
     value: 'codexspark',
@@ -285,6 +325,18 @@ function getCodexSparkOption(): ModelOption {
 // @[MODEL LAUNCH]: Update the model picker lists below to include/reorder options for the new model.
 // Each user tier (ant, Max/Team Premium, Pro/Team Standard/Enterprise, PAYG 1P, PAYG 3P) has its own list.
 function getModelOptionsBase(fastMode = false): ModelOption[] {
+  // Gemini provider: show actual Gemini models instead of Claude aliases
+  if (getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
+    return [
+      getDefaultOptionForUser(fastMode),
+      getGemini31ProOption(),
+      getGemini25ProOption(),
+      getGemini3FlashOption(),
+      getGemini25FlashOption(),
+      getGemini31FlashLiteOption(),
+    ]
+  }
+
   if (process.env.USER_TYPE === 'ant') {
     // Build options from antModels config
     const antModelOptions: ModelOption[] = getAntModels().map(m => ({

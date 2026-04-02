@@ -40,9 +40,16 @@ const OPENAI_CONTEXT_WINDOWS: Record<string, number> = {
   'mistral-large-latest':     131_072,
   'mistral-small-latest':     131_072,
 
+  // Google Gemini (direct API — CLAUDE_CODE_USE_GEMINI / CLAUDE_CODE_USE_GEMINI_NATIVE)
+  'gemini-2.5-pro':              1_048_576,
+  'gemini-2.5-flash':            1_048_576,
+  'gemini-3-flash-preview':      1_048_576,
+  'gemini-3.1-pro-preview':      1_048_576,
+  'gemini-3.1-flash-lite-preview': 1_048_576,
+
   // Google (via OpenRouter)
-  'google/gemini-2.0-flash':1_048_576,
-  'google/gemini-2.5-pro':  1_048_576,
+  'google/gemini-2.0-flash':     1_048_576,
+  'google/gemini-2.5-pro':       1_048_576,
 
   // Ollama local models
   'llama3.3:70b':               8_192,
@@ -92,9 +99,16 @@ const OPENAI_MAX_OUTPUT_TOKENS: Record<string, number> = {
   'mistral-large-latest':     32_768,
   'mistral-small-latest':     32_768,
 
+  // Google Gemini (direct API)
+  'gemini-2.5-pro':             65_536,
+  'gemini-2.5-flash':           65_536,
+  'gemini-3-flash-preview':     32_768,
+  'gemini-3.1-pro-preview':     65_536,
+  'gemini-3.1-flash-lite-preview': 32_768,
+
   // Google (via OpenRouter)
-  'google/gemini-2.0-flash':   8_192,
-  'google/gemini-2.5-pro':    32_768,
+  'google/gemini-2.0-flash':    8_192,
+  'google/gemini-2.5-pro':     32_768,
 
   // Ollama local models (conservative safe defaults)
   'llama3.3:70b':               4_096,

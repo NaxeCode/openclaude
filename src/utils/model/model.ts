@@ -35,9 +35,9 @@ export type ModelSetting = ModelName | ModelAlias | null
 
 export function getSmallFastModel(): ModelName {
   if (process.env.ANTHROPIC_SMALL_FAST_MODEL) return process.env.ANTHROPIC_SMALL_FAST_MODEL
-  // For Gemini provider, use a fast model
-  if (getAPIProvider() === 'gemini') {
-    return process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite'
+  // For Gemini providers, use a fast model
+  if (getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
+    return process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview'
   }
   // For OpenAI provider, use OPENAI_MODEL or a sensible default
   if (getAPIProvider() === 'openai') {
@@ -75,7 +75,17 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
     specifiedModel = modelOverride
   } else {
     const settings = getSettings_DEPRECATED() || {}
-    specifiedModel = process.env.ANTHROPIC_MODEL || process.env.GEMINI_MODEL || process.env.OPENAI_MODEL || settings.model || undefined
+    const useGemini = isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI) || isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI_NATIVE)
+    const useOpenAI = isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI)
+
+    specifiedModel =
+      settings.model ||
+      (useGemini ? process.env.GEMINI_MODEL : undefined) ||
+      (useOpenAI ? process.env.OPENAI_MODEL : undefined) ||
+      process.env.ANTHROPIC_MODEL ||
+      process.env.GEMINI_MODEL ||
+      process.env.OPENAI_MODEL ||
+      undefined
   }
 
   // Ignore the user-specified model if it's not in the availableModels allowlist.
@@ -115,9 +125,9 @@ export function getDefaultOpusModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_OPUS_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_OPUS_MODEL
   }
-  // Gemini provider
-  if (getAPIProvider() === 'gemini') {
-    return process.env.GEMINI_MODEL || 'gemini-2.5-pro-preview-03-25'
+  // Gemini providers
+  if (getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
+    return process.env.GEMINI_MODEL || 'gemini-2.5-pro'
   }
   // OpenAI provider: use user-specified model or default
   if (getAPIProvider() === 'openai') {
@@ -137,9 +147,9 @@ export function getDefaultSonnetModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_SONNET_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_SONNET_MODEL
   }
-  // Gemini provider
-  if (getAPIProvider() === 'gemini') {
-    return process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+  // Gemini providers
+  if (getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
+    return process.env.GEMINI_MODEL || 'gemini-2.5-flash'
   }
   // OpenAI provider
   if (getAPIProvider() === 'openai') {
@@ -157,9 +167,9 @@ export function getDefaultHaikuModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL
   }
-  // Gemini provider
-  if (getAPIProvider() === 'gemini') {
-    return process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite'
+  // Gemini providers
+  if (getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
+    return process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview'
   }
   // OpenAI provider
   if (getAPIProvider() === 'openai') {
@@ -209,9 +219,9 @@ export function getRuntimeMainLoopModel(params: {
  * @returns The default model setting to use
  */
 export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
-  // Gemini provider: always use the configured Gemini model
-  if (getAPIProvider() === 'gemini') {
-    return process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+  // Gemini providers: always use the configured Gemini model
+  if (getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
+    return process.env.GEMINI_MODEL || 'gemini-2.5-flash'
   }
   // OpenAI provider: always use the configured OpenAI model
   if (getAPIProvider() === 'openai') {
@@ -402,7 +412,7 @@ export function renderModelSetting(setting: ModelName | ModelAlias): string {
  */
 export function getPublicModelDisplayName(model: ModelName): string | null {
   // For OpenAI/Gemini providers, show the actual model name not a Claude alias
-  if (getAPIProvider() === 'openai' || getAPIProvider() === 'gemini') {
+  if (getAPIProvider() === 'openai' || getAPIProvider() === 'gemini' || getAPIProvider() === 'gemini-native') {
     return null
   }
   switch (model) {
