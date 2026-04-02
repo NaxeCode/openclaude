@@ -81,13 +81,13 @@ function detectProvider(): { name: string; model: string; baseUrl: string; isLoc
   const useOpenAI = process.env.CLAUDE_CODE_USE_OPENAI === '1' || process.env.CLAUDE_CODE_USE_OPENAI === 'true'
 
   if (useGemini) {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+    const model = process.env.GEMINI_MODEL || process.env.OPENAI_MODEL || 'gemini-2.0-flash'
     const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai'
     return { name: 'Google Gemini', model, baseUrl, isLocal: false }
   }
 
   if (useOpenAI) {
-    const model = process.env.OPENAI_MODEL || 'gpt-4o'
+    const model = process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || 'gpt-4o'
     const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'
     const isLocal = /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(baseUrl)
     let name = 'OpenAI'
